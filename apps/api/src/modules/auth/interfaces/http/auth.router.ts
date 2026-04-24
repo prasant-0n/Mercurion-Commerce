@@ -17,6 +17,7 @@ import {
 } from "@/modules/auth/interfaces/http/authentication.middleware";
 import { UnauthorizedError } from "@/shared/errors/app-error";
 import { asyncHandler } from "@/shared/http/async-handler";
+import { authRateLimitMiddleware } from "@/shared/http/security.middleware";
 
 const authService = new AuthService(
   new PrismaAuthSessionRepository(),
@@ -26,6 +27,8 @@ const authService = new AuthService(
 
 export const createAuthRouter = () => {
   const router = Router();
+
+  router.use(authRateLimitMiddleware);
 
   router.post(
     "/register",

@@ -17,6 +17,7 @@ const envSchema = z.object({
     .string()
     .min(32)
     .default("dev-refresh-secret-change-me-at-least-32-chars"),
+  AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
   AUTH_REFRESH_TOKEN_COOKIE_NAME: z.string().min(1).default("refresh_token"),
   AUTH_REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
   DATABASE_URL: z
@@ -40,6 +41,13 @@ const envSchema = z.object({
     .default("development"),
   OTEL_ENABLED: z.coerce.boolean().default(false),
   OTEL_SERVICE_VERSION: z.string().min(1).default("0.1.0"),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
+  RATE_LIMIT_WINDOW_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(15 * 60 * 1000),
+  REQUEST_BODY_LIMIT: z.string().min(1).default("1mb"),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000)
 });
 

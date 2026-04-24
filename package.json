@@ -55,6 +55,8 @@
     "@opentelemetry/resources": "^2.7.0",
     "@opentelemetry/sdk-node": "^0.215.0",
     "@opentelemetry/sdk-trace-node": "^2.7.0",
-    "@opentelemetry/semantic-conventions": "^1.40.0"
+    "@opentelemetry/semantic-conventions": "^1.40.0",
+    "express-rate-limit": "^8.4.0",
+    "helmet": "^8.1.0"
   }
 }

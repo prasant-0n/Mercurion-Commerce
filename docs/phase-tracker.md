@@ -49,12 +49,12 @@ Completed:
 - Centralized application error model
 - Express async handler and not-found/error middleware
 - Shared idempotency middleware backed by Prisma `idempotency_records`
+- Shared security headers, request content-type enforcement, and API/auth rate limiting
 - Prisma client wiring
 - Initial Prisma schema and migration covering auth, inventory, orders, payments, outbox, and idempotency tables
 
 Not complete:
 
-- Shared rate limiting / security middleware is not implemented
 - No tests for shared runtime or middleware
 - Schema does not yet encode all architecture-level database guarantees
 - no `CITEXT` email column
@@ -68,8 +68,9 @@ Relevant commits:
 - `d989973` `feat(api): add structured logging and request context`
 - `7f1b919` `feat(api): add centralized error handling`
 - `28f348a` `feat(api): add prisma schema baseline`
-- Pending current branch commit for shared idempotency middleware
-- Pending current branch commit for tracing bootstrap and log-trace correlation
+- `4fa1c7f` `feat(api): add idempotency middleware`
+- `b0b0c7f` `feat(api): add opentelemetry tracing`
+- Pending current branch commit for security middleware and rate limiting
 
 ### Phase 2: auth
 
@@ -121,8 +122,8 @@ The following architecture phases do not have implemented module code in the rep
 Execution order should follow dependency risk, not feature excitement.
 
 1. Finish the missing Phase 1 platform requirements.
-   - Add rate limiting and request validation hardening at the HTTP boundary.
    - Tighten Prisma migrations to match architecture-critical constraints and indexes.
+   - Add shared-platform tests for the new middleware and runtime behavior.
 
 2. Close the remaining auth gap before starting cart.
    - Add password reset flow.

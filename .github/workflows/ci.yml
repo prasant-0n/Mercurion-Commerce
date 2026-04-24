@@ -12,6 +12,23 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ecommerce_platform
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ecommerce_platform"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ecommerce_platform?schema=public
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ecommerce_platform?schema=public
 
     steps:
       - name: Checkout repository

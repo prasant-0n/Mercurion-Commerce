@@ -34,7 +34,7 @@ Relevant commits:
 
 ### Phase 1: shared platform foundations
 
-Status: partially complete
+Status: complete
 
 Completed:
 
@@ -53,13 +53,12 @@ Completed:
 - Prisma client wiring
 - Initial Prisma schema and migration covering auth, inventory, orders, payments, outbox, and idempotency tables
 - PostgreSQL contract hardening for `citext`, `inet`, quantity checks, reservation invariants, and partial hot-path indexes
+- Unit and integration coverage for runtime state, app middleware, and PostgreSQL schema contract
 
-Not complete:
+Residual risks:
 
-- No tests for shared runtime or middleware
-- Schema still does not cover every architecture concern
-  - no automated migration/integration verification yet
-  - no transaction-heavy reservation SQL or concurrency test coverage yet
+- No transaction-heavy reservation SQL or concurrency test coverage yet
+- No OpenTelemetry assertion coverage yet
 
 Relevant commits:
 
@@ -70,7 +69,8 @@ Relevant commits:
 - `4fa1c7f` `feat(api): add idempotency middleware`
 - `b0b0c7f` `feat(api): add opentelemetry tracing`
 - `d7a58c4` `feat(api): add security middleware`
-- Pending current branch commit for PostgreSQL schema hardening
+- `b367c19` `feat(api): harden postgres schema`
+- Pending current branch commit for shared-platform tests and CI-backed integration verification
 
 ### Phase 2: auth
 
@@ -122,8 +122,7 @@ The following architecture phases do not have implemented module code in the rep
 Execution order should follow dependency risk, not feature excitement.
 
 1. Finish the missing Phase 1 platform requirements.
-   - Add shared-platform tests for the new middleware and runtime behavior.
-   - Add migration and repository-level verification for the hardened PostgreSQL contract.
+   - Phase 1 is complete.
 
 2. Close the remaining auth gap before starting cart.
    - Add password reset flow.

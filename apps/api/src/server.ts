@@ -1,12 +1,10 @@
 import "dotenv/config";
 
 import { createApp } from "@/app";
-import { env } from "@/config/env";
+import { startHttpServer } from "@/bootstrap/start-http-server";
+import { RuntimeState } from "@/shared/runtime/runtime-state";
 
-const app = createApp();
+const runtimeState = new RuntimeState();
+const app = createApp(runtimeState);
 
-app.listen(env.PORT, env.HOST, () => {
-  console.log(
-    `API listening on http://${env.HOST}:${String(env.PORT)} in ${env.NODE_ENV} mode`
-  );
-});
+startHttpServer(app, runtimeState);

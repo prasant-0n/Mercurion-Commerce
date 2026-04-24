@@ -43,7 +43,9 @@ Completed:
 - Liveness and readiness endpoints
 - Graceful shutdown state tracking
 - Structured `pino` logging
+- OpenTelemetry tracing bootstrap with HTTP/Express auto-instrumentation
 - Request ID propagation and request-scoped context
+- Request-log trace correlation via trace and span IDs
 - Centralized application error model
 - Express async handler and not-found/error middleware
 - Shared idempotency middleware backed by Prisma `idempotency_records`
@@ -52,14 +54,13 @@ Completed:
 
 Not complete:
 
-- OpenTelemetry is not wired
 - Shared rate limiting / security middleware is not implemented
 - No tests for shared runtime or middleware
 - Schema does not yet encode all architecture-level database guarantees
-  - no `CITEXT` email column
-  - no `INET` IP column
-  - no partial indexes from the architecture doc
-  - no DB check constraints for quantity and reservation invariants
+- no `CITEXT` email column
+- no `INET` IP column
+- no partial indexes from the architecture doc
+- no DB check constraints for quantity and reservation invariants
 
 Relevant commits:
 
@@ -68,6 +69,7 @@ Relevant commits:
 - `7f1b919` `feat(api): add centralized error handling`
 - `28f348a` `feat(api): add prisma schema baseline`
 - Pending current branch commit for shared idempotency middleware
+- Pending current branch commit for tracing bootstrap and log-trace correlation
 
 ### Phase 2: auth
 
@@ -119,7 +121,6 @@ The following architecture phases do not have implemented module code in the rep
 Execution order should follow dependency risk, not feature excitement.
 
 1. Finish the missing Phase 1 platform requirements.
-   - Add OpenTelemetry bootstrap and trace correlation with request IDs.
    - Add rate limiting and request validation hardening at the HTTP boundary.
    - Tighten Prisma migrations to match architecture-critical constraints and indexes.
 

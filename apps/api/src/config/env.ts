@@ -38,6 +38,8 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
+  OTEL_ENABLED: z.coerce.boolean().default(false),
+  OTEL_SERVICE_VERSION: z.string().min(1).default("0.1.0"),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000)
 });
 

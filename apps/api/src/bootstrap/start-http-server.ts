@@ -8,7 +8,13 @@ import type { RuntimeState } from "@/shared/runtime/runtime-state";
 
 const shutdownSignals = ["SIGINT", "SIGTERM"] as const;
 
-export const startHttpServer = (app: Express, runtimeState: RuntimeState) => {
+type ShutdownTask = () => Promise<void>;
+
+export const startHttpServer = (
+  app: Express,
+  runtimeState: RuntimeState,
+  shutdownTasks: ShutdownTask[] = []
+) => {
   const server = app.listen(env.PORT, env.HOST, () => {
     runtimeState.markReady();
 
@@ -22,25 +28,29 @@ export const startHttpServer = (app: Express, runtimeState: RuntimeState) => {
     );
   });
 
-  registerShutdownHandlers(server, runtimeState);
+  registerShutdownHandlers(server, runtimeState, shutdownTasks);
 
   return server;
 };
 
 const registerShutdownHandlers = (
   server: Server,
-  runtimeState: RuntimeState
+  runtimeState: RuntimeState,
+  shutdownTasks: ShutdownTask[]
 ) => {
   const gracefulShutdown = (signal: NodeJS.Signals) => {
     runtimeState.markShuttingDown();
     logger.warn({ signal }, "Received shutdown signal");
 
-    server.close((error) => {
+    server.close(async (error) => {
       if (error) {
         logger.error({ error }, "HTTP server shutdown failed");
         process.exitCode = 1;
       }
 
+      await Promise.allSettled(
+        shutdownTasks.map((shutdownTask) => shutdownTask())
+      );
       logger.info("HTTP server shutdown complete");
       process.exit();
     });

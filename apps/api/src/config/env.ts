@@ -3,6 +3,12 @@ import { z } from "zod";
 const envSchema = z.object({
   API_PREFIX: z.string().min(1).default("/api/v1"),
   APP_NAME: z.string().min(1).default("ecommerce-api"),
+  DATABASE_URL: z
+    .string()
+    .min(1)
+    .default(
+      "postgresql://postgres:postgres@localhost:5432/ecommerce_platform?schema=public"
+    ),
   GRACEFUL_SHUTDOWN_TIMEOUT_MS: z.coerce
     .number()
     .int()

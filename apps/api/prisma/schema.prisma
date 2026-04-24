@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+  LOCKED
+}
+
+enum InventoryReservationStatus {
+  PENDING
+  CONFIRMED
+  RELEASED
+  EXPIRED
+}
+
+enum OrderStatus {
+  PENDING
+  AWAITING_PAYMENT
+  CONFIRMED
+  PAYMENT_FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentAttemptStatus {
+  INITIATED
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  CANCELLED
+}
+
+enum OutboxEventStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+model User {
+  id            String         @id @default(uuid()) @db.Uuid
+  email         String         @unique
+  passwordHash  String         @map("password_hash")
+  status        UserStatus
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  orders        Order[]
+  refreshTokens RefreshToken[]
+  userRoles     UserRole[]
+
+  @@map("users")
+}
+
+model Role {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String           @unique
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String           @unique
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId String @map("user_id") @db.Uuid
+  roleId String @map("role_id") @db.Uuid
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id") @db.Uuid
+  permissionId String     @map("permission_id") @db.Uuid
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model RefreshToken {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  tokenHash         String    @unique @map("token_hash")
+  familyId          String    @map("family_id") @db.Uuid
+  issuedAt          DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt         DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
+  replacedByTokenId String?   @map("replaced_by_token_id") @db.Uuid
+  userAgent         String?   @map("user_agent")
+  ipAddress         String?   @map("ip_address")
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model InventoryItem {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  sku                   String
+  warehouseId           String                 @map("warehouse_id") @db.Uuid
+  onHandQty             Int                    @map("on_hand_qty")
+  reservedQty           Int                    @default(0) @map("reserved_qty")
+  version               Int                    @default(0)
+  updatedAt             DateTime               @default(now()) @map("updated_at") @db.Timestamptz(6)
+  inventoryReservations InventoryReservation[]
+
+  @@unique([sku, warehouseId], name: "inventory_items_sku_warehouse_id_key")
+  @@index([sku], map: "idx_inventory_items_sku")
+  @@index([warehouseId], map: "idx_inventory_items_warehouse")
+  @@map("inventory_items")
+}
+
+model InventoryReservation {
+  id            String                     @id @default(uuid()) @db.Uuid
+  orderId       String                     @map("order_id") @db.Uuid
+  sku           String
+  warehouseId   String                     @map("warehouse_id") @db.Uuid
+  quantity      Int
+  status        InventoryReservationStatus
+  expiresAt     DateTime                   @map("expires_at") @db.Timestamptz(6)
+  createdAt     DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  inventoryItem InventoryItem              @relation(fields: [sku, warehouseId], references: [sku, warehouseId])
+  order         Order                      @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([orderId, sku, warehouseId])
+  @@index([expiresAt], map: "idx_inventory_reservations_expiry")
+  @@index([orderId], map: "idx_inventory_reservations_order")
+  @@map("inventory_reservations")
+}
+
+model Order {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  customerId            String                 @map("customer_id") @db.Uuid
+  orderNumber           BigInt                 @unique @default(autoincrement()) @map("order_number")
+  currency              String                 @db.Char(3)
+  subtotalAmount        BigInt                 @map("subtotal_amount")
+  discountAmount        BigInt                 @default(0) @map("discount_amount")
+  shippingAmount        BigInt                 @default(0) @map("shipping_amount")
+  taxAmount             BigInt                 @default(0) @map("tax_amount")
+  totalAmount           BigInt                 @map("total_amount")
+  status                OrderStatus
+  idempotencyKey        String                 @map("idempotency_key") @db.Uuid
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  customer              User                   @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  inventoryReservations InventoryReservation[]
+  items                 OrderItem[]
+  paymentAttempts       PaymentAttempt[]
+
+  @@unique([customerId, idempotencyKey])
+  @@index([customerId, createdAt(sort: Desc)], map: "idx_orders_customer_created")
+  @@index([status, createdAt(sort: Desc)], map: "idx_orders_status_created")
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String @id @default(uuid()) @db.Uuid
+  orderId         String @map("order_id") @db.Uuid
+  sku             String
+  productSnapshot Json   @map("product_snapshot")
+  unitPriceAmount BigInt @map("unit_price_amount")
+  quantity        Int
+  lineTotalAmount BigInt @map("line_total_amount")
+  order           Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model PaymentAttempt {
+  id                String               @id @default(uuid()) @db.Uuid
+  orderId           String               @map("order_id") @db.Uuid
+  provider          String
+  providerPaymentId String?              @unique @map("provider_payment_id")
+  amount            BigInt
+  currency          String               @db.Char(3)
+  status            PaymentAttemptStatus
+  idempotencyKey    String               @map("idempotency_key") @db.Uuid
+  providerResponse  Json?                @map("provider_response")
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  order             Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, idempotencyKey])
+  @@index([orderId, createdAt(sort: Desc)], map: "idx_payment_attempts_order")
+  @@map("payment_attempts")
+}
+
+model OutboxEvent {
+  id            String            @id @default(uuid()) @db.Uuid
+  aggregateType String            @map("aggregate_type")
+  aggregateId   String            @map("aggregate_id")
+  eventType     String            @map("event_type")
+  payload       Json
+  status        OutboxEventStatus
+  retryCount    Int               @default(0) @map("retry_count")
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  publishedAt   DateTime?         @map("published_at") @db.Timestamptz(6)
+
+  @@index([status, createdAt], map: "idx_outbox_pending")
+  @@map("outbox_events")
+}
+
+model IdempotencyRecord {
+  id           String   @id @default(uuid()) @db.Uuid
+  scope        String
+  key          String
+  requestHash  String   @map("request_hash")
+  responseCode Int?     @map("response_code")
+  responseBody Json?    @map("response_body")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@unique([scope, key])
+  @@index([scope, expiresAt], map: "idx_idempotency_scope_expiry")
+  @@map("idempotency_records")
+}

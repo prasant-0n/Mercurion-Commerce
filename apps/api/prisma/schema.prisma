@@ -46,7 +46,7 @@ enum OutboxEventStatus {
 
 model User {
   id            String         @id @default(uuid()) @db.Uuid
-  email         String         @unique
+  email         String         @unique @db.Citext
   passwordHash  String         @map("password_hash")
   status        UserStatus
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -105,7 +105,7 @@ model RefreshToken {
   revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
   replacedByTokenId String?   @map("replaced_by_token_id") @db.Uuid
   userAgent         String?   @map("user_agent")
-  ipAddress         String?   @map("ip_address")
+  ipAddress         String?   @map("ip_address") @db.Inet
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
@@ -188,7 +188,7 @@ model PaymentAttempt {
   id                String               @id @default(uuid()) @db.Uuid
   orderId           String               @map("order_id") @db.Uuid
   provider          String
-  providerPaymentId String?              @unique @map("provider_payment_id")
+  providerPaymentId String?              @map("provider_payment_id")
   amount            BigInt
   currency          String               @db.Char(3)
   status            PaymentAttemptStatus
@@ -199,6 +199,7 @@ model PaymentAttempt {
   order             Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@unique([provider, idempotencyKey])
+  @@unique([provider, providerPaymentId])
   @@index([orderId, createdAt(sort: Desc)], map: "idx_payment_attempts_order")
   @@map("payment_attempts")
 }

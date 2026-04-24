@@ -30,7 +30,7 @@ Relevant commits:
 
 - `4f41ed7` `feat(repo): bootstrap monorepo foundation`
 - `35d36e2` `chore(repo): modernize husky hook scripts`
-- Pending current branch commit for CI, commitlint, and local infra
+- `c4a6448` `feat(repo): complete phase 0 quality gate`
 
 ### Phase 1: shared platform foundations
 
@@ -52,15 +52,14 @@ Completed:
 - Shared security headers, request content-type enforcement, and API/auth rate limiting
 - Prisma client wiring
 - Initial Prisma schema and migration covering auth, inventory, orders, payments, outbox, and idempotency tables
+- PostgreSQL contract hardening for `citext`, `inet`, quantity checks, reservation invariants, and partial hot-path indexes
 
 Not complete:
 
 - No tests for shared runtime or middleware
-- Schema does not yet encode all architecture-level database guarantees
-- no `CITEXT` email column
-- no `INET` IP column
-- no partial indexes from the architecture doc
-- no DB check constraints for quantity and reservation invariants
+- Schema still does not cover every architecture concern
+  - no automated migration/integration verification yet
+  - no transaction-heavy reservation SQL or concurrency test coverage yet
 
 Relevant commits:
 
@@ -70,7 +69,8 @@ Relevant commits:
 - `28f348a` `feat(api): add prisma schema baseline`
 - `4fa1c7f` `feat(api): add idempotency middleware`
 - `b0b0c7f` `feat(api): add opentelemetry tracing`
-- Pending current branch commit for security middleware and rate limiting
+- `d7a58c4` `feat(api): add security middleware`
+- Pending current branch commit for PostgreSQL schema hardening
 
 ### Phase 2: auth
 
@@ -122,8 +122,8 @@ The following architecture phases do not have implemented module code in the rep
 Execution order should follow dependency risk, not feature excitement.
 
 1. Finish the missing Phase 1 platform requirements.
-   - Tighten Prisma migrations to match architecture-critical constraints and indexes.
    - Add shared-platform tests for the new middleware and runtime behavior.
+   - Add migration and repository-level verification for the hardened PostgreSQL contract.
 
 2. Close the remaining auth gap before starting cart.
    - Add password reset flow.

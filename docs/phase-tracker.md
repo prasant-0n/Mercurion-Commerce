@@ -5,33 +5,32 @@ Source of truth: `docs/ecommerce-platform-architecture.md`
 
 ## Current status
 
-The repository contains early foundation work plus a usable auth baseline. The program is not yet at a complete Phase 2 state.
+The repository now has a complete Phase 0 repository foundation, a partial Phase 1 shared platform, and a usable auth baseline. The program is not yet at a complete Phase 2 state.
 
 ## Completed work
 
 ### Phase 0: repository bootstrap
 
-Status: partially complete
+Status: complete
 
 Completed:
 
 - Monorepo root with `apps/api` and `apps/web`
+- `packages/config` workspace scaffold
+- `infra/` directory scaffold
 - Root workspace config in `package.json`
 - TypeScript base config and API-specific config
-- ESLint, Prettier, lint-staged, and Husky hooks
+- ESLint, Prettier, commitlint, lint-staged, and Husky hooks
+- GitHub Actions pipeline with lint, typecheck, unit, integration, and build stages
+- Local Docker Compose stack for PostgreSQL, MongoDB, Redis, OpenSearch, and RabbitMQ
+- API `.env.example` for local bootstrap
 - Initial repo bootstrap already committed and pushed
-
-Not complete:
-
-- `packages/config` workspace is not present
-- `infra/` layout is not present
-- GitHub Actions pipeline is not present
-- Docker Compose local stack is not present
 
 Relevant commits:
 
 - `4f41ed7` `feat(repo): bootstrap monorepo foundation`
 - `35d36e2` `chore(repo): modernize husky hook scripts`
+- Pending current branch commit for CI, commitlint, and local infra
 
 ### Phase 1: shared platform foundations
 
@@ -118,28 +117,23 @@ The following architecture phases do not have implemented module code in the rep
 
 Execution order should follow dependency risk, not feature excitement.
 
-1. Finish the remaining Phase 0 quality gate.
-   - Add GitHub Actions for lint, typecheck, build, and future test jobs.
-   - Add Docker Compose for PostgreSQL, MongoDB, Redis, OpenSearch, and RabbitMQ.
-   - Add missing repo structure for `infra/` and `packages/config` if that layout is still the target.
-
-2. Finish the missing Phase 1 platform requirements.
+1. Finish the missing Phase 1 platform requirements.
    - Implement idempotency middleware backed by `idempotency_records`.
    - Add OpenTelemetry bootstrap and trace correlation with request IDs.
    - Add rate limiting and request validation hardening at the HTTP boundary.
    - Tighten Prisma migrations to match architecture-critical constraints and indexes.
 
-3. Close the remaining auth gap before starting cart.
+2. Close the remaining auth gap before starting cart.
    - Add password reset flow.
    - Add auth integration tests for register, login, refresh rotation, logout, and token-reuse revocation.
 
-4. Implement Phase 2 cart as its own bounded step.
+3. Implement Phase 2 cart as its own bounded step.
    - Redis-backed cart storage
    - schema versioning
    - TTL refresh behavior
    - authoritative server validation
 
-5. Do not start catalog, inventory, or checkout before the quality gate and idempotency foundation are in place.
+4. Do not start catalog, inventory, or checkout before the idempotency and shared-platform foundation are in place.
 
 ## Delivery note
 

@@ -111,6 +111,8 @@ const buildAuthResponse = (
   user: {
     email: string;
     id: string;
+    permissions: string[];
+    roles: string[];
     status: string;
   }
 ) => ({

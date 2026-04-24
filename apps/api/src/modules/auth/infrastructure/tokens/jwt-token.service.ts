@@ -15,6 +15,8 @@ export class JwtTokenService implements TokenService {
   async issueAccessToken(payload: AccessTokenPayload): Promise<string> {
     return new SignJWT({
       email: payload.email,
+      permissions: payload.permissions,
+      roles: payload.roles,
       typ: "access"
     })
       .setProtectedHeader({ alg: "HS256" })
@@ -33,13 +35,21 @@ export class JwtTokenService implements TokenService {
       if (
         payload.typ !== "access" ||
         typeof payload.sub !== "string" ||
-        typeof payload.email !== "string"
+        typeof payload.email !== "string" ||
+        !Array.isArray(payload.permissions) ||
+        !payload.permissions.every(
+          (permission) => typeof permission === "string"
+        ) ||
+        !Array.isArray(payload.roles) ||
+        !payload.roles.every((role) => typeof role === "string")
       ) {
         throw new UnauthorizedError("Access token is invalid");
       }
 
       return {
         email: payload.email,
+        permissions: payload.permissions,
+        roles: payload.roles,
         userId: payload.sub
       };
     } catch {

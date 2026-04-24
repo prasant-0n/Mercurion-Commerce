@@ -27,6 +27,8 @@ export type AuthResponse = {
   user: {
     email: string;
     id: string;
+    permissions: string[];
+    roles: string[];
     status: UserStatus;
   };
 };
@@ -250,12 +252,16 @@ export class AuthService {
 
 const buildAccessTokenPayload = (user: UserRecord): AccessTokenPayload => ({
   email: user.email,
+  permissions: user.permissions,
+  roles: user.roles,
   userId: user.id
 });
 
 const buildAuthUser = (user: UserRecord) => ({
   email: user.email,
   id: user.id,
+  permissions: user.permissions,
+  roles: user.roles,
   status: user.status
 });
 

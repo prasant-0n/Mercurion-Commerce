@@ -24,6 +24,8 @@ export type UserRecord = {
   email: string;
   id: string;
   passwordHash: string;
+  permissions: string[];
+  roles: string[];
   status: UserStatus;
 };
 

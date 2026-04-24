@@ -19,12 +19,36 @@ export class PrismaAuthSessionRepository implements AuthSessionRepository {
     email: string;
     passwordHash: string;
   }): Promise<UserRecord> {
-    const user = await prisma.user.create({
-      data: {
-        email: input.email,
-        passwordHash: input.passwordHash,
-        status: UserStatus.ACTIVE
+    const user = await prisma.$transaction(async (transaction) => {
+      const customerRole = await transaction.role.findUnique({
+        where: {
+          name: "CUSTOMER"
+        }
+      });
+
+      const createdUser = await transaction.user.create({
+        data: {
+          email: input.email,
+          passwordHash: input.passwordHash,
+          status: UserStatus.ACTIVE
+        }
+      });
+
+      if (customerRole) {
+        await transaction.userRole.create({
+          data: {
+            roleId: customerRole.id,
+            userId: createdUser.id
+          }
+        });
       }
+
+      return transaction.user.findUniqueOrThrow({
+        include: userWithRolesInclude,
+        where: {
+          id: createdUser.id
+        }
+      });
     });
 
     return mapUserRecord(user);
@@ -51,6 +75,7 @@ export class PrismaAuthSessionRepository implements AuthSessionRepository {
 
   async findUserByEmail(email: string): Promise<UserRecord | null> {
     const user = await prisma.user.findUnique({
+      include: userWithRolesInclude,
       where: { email }
     });
 
@@ -59,6 +84,7 @@ export class PrismaAuthSessionRepository implements AuthSessionRepository {
 
   async findUserById(id: string): Promise<UserRecord | null> {
     const user = await prisma.user.findUnique({
+      include: userWithRolesInclude,
       where: { id }
     });
 
@@ -132,10 +158,46 @@ const mapUserRecord = (user: {
   email: string;
   id: string;
   passwordHash: string;
+  userRoles: Array<{
+    role: {
+      name: string;
+      rolePermissions: Array<{
+        permission: {
+          name: string;
+        };
+      }>;
+    };
+  }>;
   status: UserStatus;
 }): UserRecord => ({
   email: user.email,
   id: user.id,
   passwordHash: user.passwordHash,
+  permissions: Array.from(
+    new Set(
+      user.userRoles.flatMap((userRole) =>
+        userRole.role.rolePermissions.map(
+          (rolePermission) => rolePermission.permission.name
+        )
+      )
+    )
+  ),
+  roles: user.userRoles.map((userRole) => userRole.role.name),
   status: user.status
 });
+
+const userWithRolesInclude = {
+  userRoles: {
+    include: {
+      role: {
+        include: {
+          rolePermissions: {
+            include: {
+              permission: true
+            }
+          }
+        }
+      }
+    }
+  }
+} as const;

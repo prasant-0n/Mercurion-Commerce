@@ -1,5 +1,7 @@
 export type AccessTokenPayload = {
   email: string;
+  permissions: string[];
+  roles: string[];
   userId: string;
 };
 

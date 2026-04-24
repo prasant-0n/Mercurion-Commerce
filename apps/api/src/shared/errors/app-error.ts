@@ -58,3 +58,14 @@ export class ConflictError extends AppError {
     });
   }
 }
+
+export class ForbiddenError extends AppError {
+  constructor(message = "Forbidden", details?: Record<string, unknown>) {
+    super({
+      code: "FORBIDDEN",
+      details,
+      message,
+      statusCode: 403
+    });
+  }
+}

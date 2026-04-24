@@ -46,13 +46,13 @@ Completed:
 - Request ID propagation and request-scoped context
 - Centralized application error model
 - Express async handler and not-found/error middleware
+- Shared idempotency middleware backed by Prisma `idempotency_records`
 - Prisma client wiring
 - Initial Prisma schema and migration covering auth, inventory, orders, payments, outbox, and idempotency tables
 
 Not complete:
 
 - OpenTelemetry is not wired
-- Idempotency middleware is not implemented
 - Shared rate limiting / security middleware is not implemented
 - No tests for shared runtime or middleware
 - Schema does not yet encode all architecture-level database guarantees
@@ -67,6 +67,7 @@ Relevant commits:
 - `d989973` `feat(api): add structured logging and request context`
 - `7f1b919` `feat(api): add centralized error handling`
 - `28f348a` `feat(api): add prisma schema baseline`
+- Pending current branch commit for shared idempotency middleware
 
 ### Phase 2: auth
 
@@ -118,7 +119,6 @@ The following architecture phases do not have implemented module code in the rep
 Execution order should follow dependency risk, not feature excitement.
 
 1. Finish the missing Phase 1 platform requirements.
-   - Implement idempotency middleware backed by `idempotency_records`.
    - Add OpenTelemetry bootstrap and trace correlation with request IDs.
    - Add rate limiting and request validation hardening at the HTTP boundary.
    - Tighten Prisma migrations to match architecture-critical constraints and indexes.

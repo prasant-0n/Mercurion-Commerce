@@ -31,6 +31,7 @@ const envSchema = z.object({
     .positive()
     .default(10000),
   HOST: z.string().min(1).default("0.0.0.0"),
+  IDEMPOTENCY_TTL_HOURS: z.coerce.number().int().positive().default(24),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),

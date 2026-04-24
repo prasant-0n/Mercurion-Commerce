@@ -2,6 +2,8 @@ import express from "express";
 
 import { env } from "@/config/env";
 import { createSystemRouter } from "@/routes/system.route";
+import { errorHandlerMiddleware } from "@/shared/http/error-handler.middleware";
+import { notFoundMiddleware } from "@/shared/http/not-found.middleware";
 import { requestContextMiddleware } from "@/shared/http/request-context.middleware";
 import { requestLoggerMiddleware } from "@/shared/http/request-logger.middleware";
 import type { RuntimeState } from "@/shared/runtime/runtime-state";
@@ -15,6 +17,8 @@ export const createApp = (runtimeState: RuntimeState) => {
   app.use(express.json({ limit: "1mb" }));
 
   app.use(env.API_PREFIX, createSystemRouter(runtimeState));
+  app.use(notFoundMiddleware);
+  app.use(errorHandlerMiddleware);
 
   return app;
 };

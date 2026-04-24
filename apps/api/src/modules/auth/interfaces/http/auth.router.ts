@@ -11,6 +11,10 @@ import {
   optionalRefreshCookieSchema,
   refreshCookieSchema
 } from "@/modules/auth/interfaces/http/auth.schemas";
+import {
+  authenticateRequest,
+  requireAuthentication
+} from "@/modules/auth/interfaces/http/authentication.middleware";
 import { UnauthorizedError } from "@/shared/errors/app-error";
 import { asyncHandler } from "@/shared/http/async-handler";
 
@@ -86,6 +90,17 @@ export const createAuthRouter = () => {
       clearRefreshTokenCookie(response);
       response.status(204).send();
     })
+  );
+
+  router.get(
+    "/me",
+    asyncHandler(authenticateRequest),
+    requireAuthentication,
+    (request, response) => {
+      response.status(200).json({
+        user: request.auth
+      });
+    }
   );
 
   return router;

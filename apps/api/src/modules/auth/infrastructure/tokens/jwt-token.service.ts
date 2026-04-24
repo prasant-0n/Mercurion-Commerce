@@ -24,6 +24,29 @@ export class JwtTokenService implements TokenService {
       .sign(accessSecret);
   }
 
+  async verifyAccessToken(token: string): Promise<AccessTokenPayload> {
+    try {
+      const { payload } = await jwtVerify(token, accessSecret, {
+        algorithms: ["HS256"]
+      });
+
+      if (
+        payload.typ !== "access" ||
+        typeof payload.sub !== "string" ||
+        typeof payload.email !== "string"
+      ) {
+        throw new UnauthorizedError("Access token is invalid");
+      }
+
+      return {
+        email: payload.email,
+        userId: payload.sub
+      };
+    } catch {
+      throw new UnauthorizedError("Access token is invalid");
+    }
+  }
+
   async issueRefreshToken(payload: RefreshTokenPayload): Promise<string> {
     return new SignJWT({
       fid: payload.familyId,

@@ -36,3 +36,25 @@ export class NotFoundError extends AppError {
     });
   }
 }
+
+export class UnauthorizedError extends AppError {
+  constructor(message = "Unauthorized", details?: Record<string, unknown>) {
+    super({
+      code: "UNAUTHORIZED",
+      details,
+      message,
+      statusCode: 401
+    });
+  }
+}
+
+export class ConflictError extends AppError {
+  constructor(message = "Conflict", details?: Record<string, unknown>) {
+    super({
+      code: "CONFLICT",
+      details,
+      message,
+      statusCode: 409
+    });
+  }
+}

@@ -3,6 +3,22 @@ import { z } from "zod";
 const envSchema = z.object({
   API_PREFIX: z.string().min(1).default("/api/v1"),
   APP_NAME: z.string().min(1).default("ecommerce-api"),
+  AUTH_ACCESS_TOKEN_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(900),
+  AUTH_BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(10).max(14).default(12),
+  AUTH_JWT_ACCESS_SECRET: z
+    .string()
+    .min(32)
+    .default("dev-access-secret-change-me-at-least-32-chars"),
+  AUTH_JWT_REFRESH_SECRET: z
+    .string()
+    .min(32)
+    .default("dev-refresh-secret-change-me-at-least-32-chars"),
+  AUTH_REFRESH_TOKEN_COOKIE_NAME: z.string().min(1).default("refresh_token"),
+  AUTH_REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
   DATABASE_URL: z
     .string()
     .min(1)

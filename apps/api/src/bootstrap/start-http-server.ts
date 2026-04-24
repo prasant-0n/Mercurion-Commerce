@@ -3,6 +3,7 @@ import type { Server } from "node:http";
 import type { Express } from "express";
 
 import { env } from "@/config/env";
+import { logger } from "@/shared/observability/logger";
 import type { RuntimeState } from "@/shared/runtime/runtime-state";
 
 const shutdownSignals = ["SIGINT", "SIGTERM"] as const;
@@ -11,8 +12,13 @@ export const startHttpServer = (app: Express, runtimeState: RuntimeState) => {
   const server = app.listen(env.PORT, env.HOST, () => {
     runtimeState.markReady();
 
-    console.log(
-      `API listening on http://${env.HOST}:${String(env.PORT)} in ${env.NODE_ENV} mode`
+    logger.info(
+      {
+        environment: env.NODE_ENV,
+        host: env.HOST,
+        port: env.PORT
+      },
+      "HTTP server started"
     );
   });
 
@@ -27,19 +33,20 @@ const registerShutdownHandlers = (
 ) => {
   const gracefulShutdown = (signal: NodeJS.Signals) => {
     runtimeState.markShuttingDown();
-    console.log(`Received ${signal}. Starting graceful shutdown.`);
+    logger.warn({ signal }, "Received shutdown signal");
 
     server.close((error) => {
       if (error) {
-        console.error("HTTP server shutdown failed.", error);
+        logger.error({ error }, "HTTP server shutdown failed");
         process.exitCode = 1;
       }
 
+      logger.info("HTTP server shutdown complete");
       process.exit();
     });
 
     setTimeout(() => {
-      console.error("Forced shutdown after timeout.");
+      logger.fatal("Forced shutdown after timeout");
       process.exit(1);
     }, env.GRACEFUL_SHUTDOWN_TIMEOUT_MS).unref();
   };

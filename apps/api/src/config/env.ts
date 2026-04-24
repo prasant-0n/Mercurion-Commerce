@@ -9,6 +9,9 @@ const envSchema = z.object({
     .positive()
     .default(10000),
   HOST: z.string().min(1).default("0.0.0.0"),
+  LOG_LEVEL: z
+    .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
+    .default("info"),
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),

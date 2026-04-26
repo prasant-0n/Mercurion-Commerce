@@ -2,13 +2,29 @@ import { UserStatus } from "@prisma/client";
 
 import type {
   AuthSessionRepository,
+  CreatePasswordResetTokenRecord,
   CreateRefreshTokenRecord,
+  PasswordResetTokenRecord,
   RefreshTokenRecord,
   UserRecord
 } from "@/modules/auth/application/ports/auth-session.repository";
 import { prisma } from "@/shared/infrastructure/prisma/prisma-client";
 
 export class PrismaAuthSessionRepository implements AuthSessionRepository {
+  async createPasswordResetToken(
+    record: CreatePasswordResetTokenRecord
+  ): Promise<void> {
+    await prisma.passwordResetToken.create({
+      data: {
+        createdAt: record.createdAt,
+        expiresAt: record.expiresAt,
+        id: record.id,
+        tokenHash: record.tokenHash,
+        userId: record.userId
+      }
+    });
+  }
+
   async createRefreshToken(record: CreateRefreshTokenRecord): Promise<void> {
     await prisma.refreshToken.create({
       data: buildRefreshTokenCreateData(record)
@@ -73,6 +89,29 @@ export class PrismaAuthSessionRepository implements AuthSessionRepository {
     };
   }
 
+  async findPasswordResetTokenByTokenHash(
+    tokenHash: string
+  ): Promise<PasswordResetTokenRecord | null> {
+    const token = await prisma.passwordResetToken.findUnique({
+      where: {
+        tokenHash
+      }
+    });
+
+    if (!token) {
+      return null;
+    }
+
+    return {
+      consumedAt: token.consumedAt ?? undefined,
+      expiresAt: token.expiresAt,
+      id: token.id,
+      revokedAt: token.revokedAt ?? undefined,
+      tokenHash: token.tokenHash,
+      userId: token.userId
+    };
+  }
+
   async findUserByEmail(email: string): Promise<UserRecord | null> {
     const user = await prisma.user.findUnique({
       include: userWithRolesInclude,
@@ -89,6 +128,111 @@ export class PrismaAuthSessionRepository implements AuthSessionRepository {
     });
 
     return user ? mapUserRecord(user) : null;
+  }
+
+  async replacePasswordUsingResetToken(input: {
+    consumedAt: Date;
+    newPasswordHash: string;
+    passwordResetTokenId: string;
+    revokedAt: Date;
+    userId: string;
+  }): Promise<boolean> {
+    return prisma.$transaction(async (transaction) => {
+      const consumedToken = await transaction.passwordResetToken.updateMany({
+        data: {
+          consumedAt: input.consumedAt
+        },
+        where: {
+          consumedAt: null,
+          expiresAt: {
+            gt: input.consumedAt
+          },
+          id: input.passwordResetTokenId,
+          revokedAt: null,
+          userId: input.userId
+        }
+      });
+
+      if (consumedToken.count !== 1) {
+        return false;
+      }
+
+      await transaction.user.update({
+        data: {
+          passwordHash: input.newPasswordHash
+        },
+        where: {
+          id: input.userId
+        }
+      });
+
+      await transaction.refreshToken.updateMany({
+        data: {
+          revokedAt: input.revokedAt
+        },
+        where: {
+          revokedAt: null,
+          userId: input.userId
+        }
+      });
+
+      await transaction.passwordResetToken.updateMany({
+        data: {
+          revokedAt: input.revokedAt
+        },
+        where: {
+          consumedAt: null,
+          id: {
+            not: input.passwordResetTokenId
+          },
+          revokedAt: null,
+          userId: input.userId
+        }
+      });
+
+      return true;
+    });
+  }
+
+  async revokeAllRefreshTokensForUser(input: {
+    revokedAt: Date;
+    userId: string;
+  }): Promise<void> {
+    await prisma.refreshToken.updateMany({
+      data: {
+        revokedAt: input.revokedAt
+      },
+      where: {
+        revokedAt: null,
+        userId: input.userId
+      }
+    });
+  }
+
+  async revokeOutstandingPasswordResetTokens(input: {
+    excludeTokenId?: string;
+    revokedAt: Date;
+    userId: string;
+  }): Promise<void> {
+    const excludedTokenFilter = input.excludeTokenId
+      ? {
+          id: {
+            not: input.excludeTokenId
+          }
+        }
+      : {};
+
+    await prisma.passwordResetToken.updateMany({
+      data: {
+        revokedAt: input.revokedAt
+      },
+      where: {
+        consumedAt: null,
+        revokedAt: null,
+        userId: input.userId,
+        ...excludedTokenFilter
+      }
+    });
   }
 
   async revokeRefreshToken(input: {

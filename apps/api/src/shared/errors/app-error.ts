@@ -48,6 +48,17 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class BadRequestError extends AppError {
+  constructor(message = "Bad request", details?: Record<string, unknown>) {
+    super({
+      code: "BAD_REQUEST",
+      details,
+      message,
+      statusCode: 400
+    });
+  }
+}
+
 export class ConflictError extends AppError {
   constructor(message = "Conflict", details?: Record<string, unknown>) {
     super({

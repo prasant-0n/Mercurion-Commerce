@@ -104,6 +104,21 @@ describe("postgres schema contract", () => {
     expect(indexDefinition).toMatch(/unique/i);
     expect(indexDefinition).toMatch(/\(provider, provider_payment_id\)/i);
   });
+
+  it("creates password reset token indexes", async () => {
+    const uniqueIndexDefinition = await loadIndexDefinition(
+      client,
+      "password_reset_tokens_token_hash_key"
+    );
+    const expiryIndexDefinition = await loadIndexDefinition(
+      client,
+      "idx_password_reset_tokens_user_expiry"
+    );
+
+    expect(uniqueIndexDefinition).toMatch(/unique/i);
+    expect(uniqueIndexDefinition).toMatch(/\(token_hash\)/i);
+    expect(expiryIndexDefinition).toMatch(/\(user_id, expires_at\)/i);
+  });
 });
 
 const loadIndexDefinition = async (client: Client, indexName: string) => {

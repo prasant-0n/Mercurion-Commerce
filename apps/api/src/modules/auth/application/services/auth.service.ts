@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 import { UserStatus } from "@prisma/client";
 
@@ -9,12 +9,17 @@ import type {
   UserRecord
 } from "@/modules/auth/application/ports/auth-session.repository";
 import type { PasswordHasher } from "@/modules/auth/application/ports/password-hasher";
+import type { PasswordResetNotifier } from "@/modules/auth/application/ports/password-reset-notifier";
 import type {
   AccessTokenPayload,
   RefreshTokenPayload,
   TokenService
 } from "@/modules/auth/application/ports/token-service";
-import { ConflictError, UnauthorizedError } from "@/shared/errors/app-error";
+import {
+  BadRequestError,
+  ConflictError,
+  UnauthorizedError
+} from "@/shared/errors/app-error";
 
 type AuthSessionMetadata = {
   ipAddress: string | undefined;
@@ -37,7 +42,8 @@ export class AuthService {
   constructor(
     private readonly authSessionRepository: AuthSessionRepository,
     private readonly passwordHasher: PasswordHasher,
-    private readonly tokenService: TokenService
+    private readonly tokenService: TokenService,
+    private readonly passwordResetNotifier: PasswordResetNotifier
   ) {}
 
   async register(input: {
@@ -162,6 +168,88 @@ export class AuthService {
       refreshToken: rotatedToken.rawToken,
       user: buildAuthUser(user)
     };
+  }
+
+  async requestPasswordReset(input: { email: string }): Promise<void> {
+    const normalizedEmail = normalizeEmail(input.email);
+    const user =
+      await this.authSessionRepository.findUserByEmail(normalizedEmail);
+
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      return;
+    }
+
+    const createdAt = new Date();
+    const expiresAt = new Date(
+      createdAt.getTime() +
+        env.AUTH_PASSWORD_RESET_TOKEN_TTL_MINUTES * 60 * 1000
+    );
+    const rawToken = randomBytes(32).toString("hex");
+
+    await this.authSessionRepository.revokeOutstandingPasswordResetTokens({
+      revokedAt: createdAt,
+      userId: user.id
+    });
+    await this.authSessionRepository.createPasswordResetToken({
+      createdAt,
+      expiresAt,
+      id: randomUUID(),
+      tokenHash: hashToken(rawToken),
+      userId: user.id
+    });
+
+    await this.passwordResetNotifier.sendPasswordReset({
+      email: user.email,
+      expiresAt,
+      token: rawToken,
+      userId: user.id
+    });
+  }
+
+  async resetPassword(input: {
+    password: string;
+    sessionMetadata: AuthSessionMetadata;
+    token: string;
+  }): Promise<AuthResponse> {
+    const tokenHash = hashToken(input.token);
+    const storedToken =
+      await this.authSessionRepository.findPasswordResetTokenByTokenHash(
+        tokenHash
+      );
+
+    if (
+      !storedToken ||
+      storedToken.consumedAt ||
+      storedToken.revokedAt ||
+      storedToken.expiresAt.getTime() <= Date.now()
+    ) {
+      throw new BadRequestError("Password reset token is invalid or expired");
+    }
+
+    const user = await this.authSessionRepository.findUserById(
+      storedToken.userId
+    );
+
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedError("User account is not active");
+    }
+
+    const passwordHash = await this.passwordHasher.hash(input.password);
+    const now = new Date();
+    const wasReset =
+      await this.authSessionRepository.replacePasswordUsingResetToken({
+        consumedAt: now,
+        newPasswordHash: passwordHash,
+        passwordResetTokenId: storedToken.id,
+        revokedAt: now,
+        userId: user.id
+      });
+
+    if (!wasReset) {
+      throw new BadRequestError("Password reset token is invalid or expired");
+    }
+
+    return this.issueTokens(user, input.sessionMetadata);
   }
 
   async logout(input: { refreshToken?: string }): Promise<void> {

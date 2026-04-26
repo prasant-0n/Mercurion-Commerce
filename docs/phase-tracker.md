@@ -1,11 +1,11 @@
 # E-Commerce Platform Phase Tracker
 
-Last reviewed: 2026-04-24
+Last reviewed: 2026-04-27
 Source of truth: `docs/ecommerce-platform-architecture.md`
 
 ## Current status
 
-The repository now has a complete Phase 0 repository foundation, a partial Phase 1 shared platform, and a usable auth baseline. The program is not yet at a complete Phase 2 state.
+The repository now has a complete Phase 0 repository foundation, a complete Phase 1 shared platform, and a complete Phase 2 auth implementation. The program has not started cart yet, so Phase 2 as a whole is still incomplete.
 
 ## Completed work
 
@@ -74,7 +74,7 @@ Relevant commits:
 
 ### Phase 2: auth
 
-Status: mostly complete for auth core, partial for full phase
+Status: complete for auth scope, partial for full phase
 
 Completed:
 
@@ -91,11 +91,12 @@ Completed:
 - Role and permission persistence in Prisma
 - RBAC seed script
 - Permission-based route middleware
+- Password reset request + confirm flow
+- Password reset token persistence and session revocation on password change
+- Auth integration coverage for register, login, refresh rotation, logout, reuse revocation, and password reset
 
 Not complete:
 
-- Password reset flow is not implemented
-- Auth tests are not present
 - RBAC enforcement is not yet applied across business modules
 - Full cart phase work has not started
 
@@ -121,20 +122,13 @@ The following architecture phases do not have implemented module code in the rep
 
 Execution order should follow dependency risk, not feature excitement.
 
-1. Finish the missing Phase 1 platform requirements.
-   - Phase 1 is complete.
-
-2. Close the remaining auth gap before starting cart.
-   - Add password reset flow.
-   - Add auth integration tests for register, login, refresh rotation, logout, and token-reuse revocation.
-
-3. Implement Phase 2 cart as its own bounded step.
+1. Implement Phase 2 cart as its own bounded step.
    - Redis-backed cart storage
    - schema versioning
    - TTL refresh behavior
    - authoritative server validation
 
-4. Do not start catalog, inventory, or checkout before the idempotency and shared-platform foundation are in place.
+2. Do not start catalog, inventory, or checkout before the cart boundary exists and the idempotency/shared-platform foundation remains green.
 
 ## Delivery note
 

@@ -17,6 +17,11 @@ const envSchema = z.object({
     .string()
     .min(32)
     .default("dev-refresh-secret-change-me-at-least-32-chars"),
+  AUTH_PASSWORD_RESET_TOKEN_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(30),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
   AUTH_REFRESH_TOKEN_COOKIE_NAME: z.string().min(1).default("refresh_token"),
   AUTH_REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),

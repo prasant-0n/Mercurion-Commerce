@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import express from "express";
 
 import { env } from "@/config/env";
+import type { AuthService } from "@/modules/auth/application/services/auth.service";
 import { createAuthRouter } from "@/modules/auth/interfaces/http/auth.router";
 import { createSystemRouter } from "@/routes/system.route";
 import { errorHandlerMiddleware } from "@/shared/http/error-handler.middleware";
@@ -15,7 +16,14 @@ import {
 } from "@/shared/http/security.middleware";
 import type { RuntimeState } from "@/shared/runtime/runtime-state";
 
-export const createApp = (runtimeState: RuntimeState) => {
+type CreateAppOptions = {
+  authService?: AuthService;
+};
+
+export const createApp = (
+  runtimeState: RuntimeState,
+  options: CreateAppOptions = {}
+) => {
   const app = express();
 
   app.disable("x-powered-by");
@@ -30,7 +38,7 @@ export const createApp = (runtimeState: RuntimeState) => {
     express.urlencoded({ extended: false, limit: env.REQUEST_BODY_LIMIT })
   );
 
-  app.use(`${env.API_PREFIX}/auth`, createAuthRouter());
+  app.use(`${env.API_PREFIX}/auth`, createAuthRouter(options.authService));
   app.use(env.API_PREFIX, createSystemRouter(runtimeState));
   app.use(notFoundMiddleware);
   app.use(errorHandlerMiddleware);

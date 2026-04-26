@@ -1,14 +1,16 @@
-import type { Request, Response } from "express";
-import { Router } from "express";
+import { type Request, type Response, Router } from "express";
 
 import { env } from "@/config/env";
 import { AuthService } from "@/modules/auth/application/services/auth.service";
 import { BcryptPasswordHasher } from "@/modules/auth/infrastructure/crypto/bcrypt-password-hasher";
+import { LoggerPasswordResetNotifier } from "@/modules/auth/infrastructure/notifiers/logger-password-reset-notifier";
 import { PrismaAuthSessionRepository } from "@/modules/auth/infrastructure/repositories/prisma-auth-session.repository";
 import { JwtTokenService } from "@/modules/auth/infrastructure/tokens/jwt-token.service";
 import {
   authCredentialsSchema,
   optionalRefreshCookieSchema,
+  passwordResetConfirmSchema,
+  passwordResetRequestSchema,
   refreshCookieSchema
 } from "@/modules/auth/interfaces/http/auth.schemas";
 import {
@@ -19,13 +21,17 @@ import { UnauthorizedError } from "@/shared/errors/app-error";
 import { asyncHandler } from "@/shared/http/async-handler";
 import { authRateLimitMiddleware } from "@/shared/http/security.middleware";
 
-const authService = new AuthService(
-  new PrismaAuthSessionRepository(),
-  new BcryptPasswordHasher(),
-  new JwtTokenService()
-);
+const createDefaultAuthService = () =>
+  new AuthService(
+    new PrismaAuthSessionRepository(),
+    new BcryptPasswordHasher(),
+    new JwtTokenService(),
+    new LoggerPasswordResetNotifier()
+  );
 
-export const createAuthRouter = () => {
+export const createAuthRouter = (
+  authService: AuthService = createDefaultAuthService()
+) => {
   const router = Router();
 
   router.use(authRateLimitMiddleware);
@@ -73,6 +79,38 @@ export const createAuthRouter = () => {
       const authResult = await authService.refresh({
         refreshToken,
         sessionMetadata: buildSessionMetadata(request)
+      });
+
+      writeRefreshTokenCookie(response, authResult.refreshToken);
+      response
+        .status(200)
+        .json(buildAuthResponse(authResult.accessToken, authResult.user));
+    })
+  );
+
+  router.post(
+    "/password-reset/request",
+    asyncHandler(async (request, response) => {
+      const payload = passwordResetRequestSchema.parse(request.body);
+
+      await authService.requestPasswordReset({
+        email: payload.email
+      });
+
+      response.status(202).json({
+        accepted: true
+      });
+    })
+  );
+
+  router.post(
+    "/password-reset/confirm",
+    asyncHandler(async (request, response) => {
+      const payload = passwordResetConfirmSchema.parse(request.body);
+      const authResult = await authService.resetPassword({
+        password: payload.password,
+        sessionMetadata: buildSessionMetadata(request),
+        token: payload.token
       });
 
       writeRefreshTokenCookie(response, authResult.refreshToken);

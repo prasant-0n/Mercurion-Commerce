@@ -11,6 +11,7 @@ type ErrorBody = {
 
 const envKeys = [
   "AUTH_RATE_LIMIT_MAX_REQUESTS",
+  "CART_RATE_LIMIT_MAX_REQUESTS",
   "RATE_LIMIT_MAX_REQUESTS",
   "RATE_LIMIT_WINDOW_MS"
 ] as const;
@@ -104,6 +105,25 @@ describe("app middleware", () => {
     expect(thirdResponse.status).toBe(429);
     expect(readBody(thirdResponse).error?.code).toBe(
       "AUTH_RATE_LIMIT_EXCEEDED"
+    );
+  });
+
+  it("enforces the cart rate limit independently", async () => {
+    const app = await loadApp({
+      CART_RATE_LIMIT_MAX_REQUESTS: "2",
+      RATE_LIMIT_MAX_REQUESTS: "100",
+      RATE_LIMIT_WINDOW_MS: "60000"
+    });
+
+    const firstResponse = await request(app).get("/api/v1/cart");
+    const secondResponse = await request(app).get("/api/v1/cart");
+    const thirdResponse = await request(app).get("/api/v1/cart");
+
+    expect(firstResponse.status).toBe(401);
+    expect(secondResponse.status).toBe(401);
+    expect(thirdResponse.status).toBe(429);
+    expect(readBody(thirdResponse).error?.code).toBe(
+      "CART_RATE_LIMIT_EXCEEDED"
     );
   });
 });

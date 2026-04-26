@@ -4,6 +4,8 @@ import express from "express";
 import { env } from "@/config/env";
 import type { AuthService } from "@/modules/auth/application/services/auth.service";
 import { createAuthRouter } from "@/modules/auth/interfaces/http/auth.router";
+import type { CartService } from "@/modules/cart/application/services/cart.service";
+import { createCartRouter } from "@/modules/cart/interfaces/http/cart.router";
 import { createSystemRouter } from "@/routes/system.route";
 import { errorHandlerMiddleware } from "@/shared/http/error-handler.middleware";
 import { notFoundMiddleware } from "@/shared/http/not-found.middleware";
@@ -18,6 +20,7 @@ import type { RuntimeState } from "@/shared/runtime/runtime-state";
 
 type CreateAppOptions = {
   authService?: AuthService;
+  cartService?: CartService;
 };
 
 export const createApp = (
@@ -39,6 +42,7 @@ export const createApp = (
   );
 
   app.use(`${env.API_PREFIX}/auth`, createAuthRouter(options.authService));
+  app.use(`${env.API_PREFIX}/cart`, createCartRouter(options.cartService));
   app.use(env.API_PREFIX, createSystemRouter(runtimeState));
   app.use(notFoundMiddleware);
   app.use(errorHandlerMiddleware);

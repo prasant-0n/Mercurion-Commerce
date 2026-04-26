@@ -25,6 +25,11 @@ const envSchema = z.object({
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
   AUTH_REFRESH_TOKEN_COOKIE_NAME: z.string().min(1).default("refresh_token"),
   AUTH_REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
+  CART_MAX_LINES: z.coerce.number().int().positive().default(100),
+  CART_MAX_QUANTITY_PER_LINE: z.coerce.number().int().positive().default(99),
+  CART_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(60),
+  CART_SCHEMA_VERSION: z.coerce.number().int().positive().default(1),
+  CART_TTL_DAYS: z.coerce.number().int().positive().default(30),
   DATABASE_URL: z
     .string()
     .min(1)
@@ -46,6 +51,7 @@ const envSchema = z.object({
     .default("development"),
   OTEL_ENABLED: z.coerce.boolean().default(false),
   OTEL_SERVICE_VERSION: z.string().min(1).default("0.1.0"),
+  REDIS_URL: z.string().url().default("redis://127.0.0.1:6379"),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
   RATE_LIMIT_WINDOW_MS: z.coerce
     .number()

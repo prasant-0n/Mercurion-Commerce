@@ -5,7 +5,7 @@ Source of truth: `docs/ecommerce-platform-architecture.md`
 
 ## Current status
 
-The repository now has a complete Phase 0 repository foundation, a complete Phase 1 shared platform, and a complete Phase 2 auth implementation. The program has not started cart yet, so Phase 2 as a whole is still incomplete.
+The repository now has a complete Phase 0 repository foundation, a complete Phase 1 shared platform, and a complete Phase 2 implementation covering both auth and cart.
 
 ## Completed work
 
@@ -74,7 +74,7 @@ Relevant commits:
 
 ### Phase 2: auth
 
-Status: complete for auth scope, partial for full phase
+Status: complete
 
 Completed:
 
@@ -95,10 +95,9 @@ Completed:
 - Password reset token persistence and session revocation on password change
 - Auth integration coverage for register, login, refresh rotation, logout, reuse revocation, and password reset
 
-Not complete:
+Residual risks:
 
-- RBAC enforcement is not yet applied across business modules
-- Full cart phase work has not started
+- RBAC enforcement is not yet applied across future business modules because those modules do not exist yet
 
 Relevant commits:
 
@@ -106,11 +105,29 @@ Relevant commits:
 - `a12243b` `feat(auth): add access token authentication middleware`
 - `bebe82b` `feat(auth): add rbac seed and authorization context`
 
+### Phase 2: cart
+
+Status: complete
+
+Completed:
+
+- Redis-backed cart repository with explicit cart schema versioning
+- Cart TTL refresh behavior on read and write paths
+- Authenticated cart APIs for read, upsert line, remove line, and clear cart
+- Server-authoritative cart mutation validation for SKU and quantity inputs
+- Cart response versioning to support optimistic client reconciliation
+- Cart-specific rate limiting
+- Cart integration coverage and Redis repository unit coverage
+
+Residual risks:
+
+- Cart validation is intentionally limited to server-side mutation rules until catalog and inventory modules exist
+- No real Redis integration test is present yet; the Redis adapter is covered through unit tests and exercised by the production path
+
 ## Not started
 
 The following architecture phases do not have implemented module code in the repository yet:
 
-- Phase 2 cart core
 - Phase 3 catalog authoring and search projection
 - Phase 4 inventory core
 - Phase 5 checkout and payments
@@ -122,13 +139,12 @@ The following architecture phases do not have implemented module code in the rep
 
 Execution order should follow dependency risk, not feature excitement.
 
-1. Implement Phase 2 cart as its own bounded step.
-   - Redis-backed cart storage
-   - schema versioning
-   - TTL refresh behavior
-   - authoritative server validation
+1. Start Phase 3 catalog authoring and search projection.
+   - MongoDB product authoring model
+   - publication flow and outbox event emission
+   - OpenSearch projection worker
 
-2. Do not start catalog, inventory, or checkout before the cart boundary exists and the idempotency/shared-platform foundation remains green.
+2. Keep checkout and inventory deferred until catalog and cart read models are stable enough to support authoritative checkout validation.
 
 ## Delivery note
 

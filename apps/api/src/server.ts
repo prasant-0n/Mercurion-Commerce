@@ -1,6 +1,7 @@
 import "dotenv/config";
 
 import { initializeTracing } from "@/bootstrap/tracing";
+import { closeRedisClient } from "@/shared/infrastructure/redis/redis-client";
 
 const tracingHandle = initializeTracing();
 
@@ -14,4 +15,4 @@ const [{ createApp }, { startHttpServer }, { RuntimeState }] =
 const runtimeState = new RuntimeState();
 const app = createApp(runtimeState);
 
-startHttpServer(app, runtimeState, [tracingHandle.shutdown]);
+startHttpServer(app, runtimeState, [tracingHandle.shutdown, closeRedisClient]);

@@ -59,6 +59,20 @@ export class BadRequestError extends AppError {
   }
 }
 
+export class ServiceUnavailableError extends AppError {
+  constructor(
+    message = "Service unavailable",
+    details?: Record<string, unknown>
+  ) {
+    super({
+      code: "SERVICE_UNAVAILABLE",
+      details,
+      message,
+      statusCode: 503
+    });
+  }
+}
+
 export class ConflictError extends AppError {
   constructor(message = "Conflict", details?: Record<string, unknown>) {
     super({

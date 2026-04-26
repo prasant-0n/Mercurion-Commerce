@@ -43,6 +43,19 @@ export const authRateLimitMiddleware = rateLimit({
   windowMs: env.RATE_LIMIT_WINDOW_MS
 });
 
+export const cartRateLimitMiddleware = rateLimit({
+  legacyHeaders: false,
+  limit: env.CART_RATE_LIMIT_MAX_REQUESTS,
+  message: {
+    error: {
+      code: "CART_RATE_LIMIT_EXCEEDED",
+      message: "Too many cart mutations, please retry later"
+    }
+  },
+  standardHeaders: "draft-8",
+  windowMs: env.RATE_LIMIT_WINDOW_MS
+});
+
 export const requireJsonContentTypeMiddleware: RequestHandler = (
   request,
   _response,

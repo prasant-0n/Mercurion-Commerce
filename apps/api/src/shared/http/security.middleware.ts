@@ -56,6 +56,19 @@ export const cartRateLimitMiddleware = rateLimit({
   windowMs: env.RATE_LIMIT_WINDOW_MS
 });
 
+export const checkoutRateLimitMiddleware = rateLimit({
+  legacyHeaders: false,
+  limit: env.CHECKOUT_RATE_LIMIT_MAX_REQUESTS,
+  message: {
+    error: {
+      code: "CHECKOUT_RATE_LIMIT_EXCEEDED",
+      message: "Too many checkout attempts, please retry later"
+    }
+  },
+  standardHeaders: "draft-8",
+  windowMs: env.RATE_LIMIT_WINDOW_MS
+});
+
 export const requireJsonContentTypeMiddleware: RequestHandler = (
   request,
   _response,

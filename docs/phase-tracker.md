@@ -1,11 +1,11 @@
 # E-Commerce Platform Phase Tracker
 
-Last reviewed: 2026-04-27
+Last reviewed: 2026-05-06
 Source of truth: `docs/ecommerce-platform-architecture.md`
 
 ## Current status
 
-The repository now has a complete Phase 0 repository foundation, a complete Phase 1 shared platform, and a complete Phase 2 implementation covering both auth and cart.
+The repository now has a complete Phase 0 repository foundation, a complete Phase 1 shared platform, a complete Phase 2 implementation covering both auth and cart, a complete Phase 3 catalog slice, a complete Phase 4 inventory core, and a complete Phase 5 checkout and payments core.
 
 ## Completed work
 
@@ -70,7 +70,6 @@ Relevant commits:
 - `b0b0c7f` `feat(api): add opentelemetry tracing`
 - `d7a58c4` `feat(api): add security middleware`
 - `b367c19` `feat(api): harden postgres schema`
-- Pending current branch commit for shared-platform tests and CI-backed integration verification
 
 ### Phase 2: auth
 
@@ -124,13 +123,74 @@ Residual risks:
 - Cart validation is intentionally limited to server-side mutation rules until catalog and inventory modules exist
 - No real Redis integration test is present yet; the Redis adapter is covered through unit tests and exercised by the production path
 
+### Phase 3: catalog authoring
+
+Status: complete
+
+Completed:
+
+- MongoDB runtime configuration and shared client bootstrap
+- Graceful MongoDB shutdown wiring alongside existing runtime cleanup
+- Admin-protected catalog authoring REST APIs for create, list, get, and update
+- Catalog application service with normalization and authoring-only business rules
+- MongoDB catalog repository with collection validation and core indexing strategy
+- In-memory catalog repository for fast service and route validation
+- Unit coverage for catalog authoring service rules
+- Integration coverage added for catalog authz and CRUD flows
+
+Residual risks:
+
+- Live MongoDB integration coverage is not present yet
+- Local Prisma-backed integration execution is currently blocked by a Prisma schema-engine failure during migration deployment against `localhost:5432`
+
+### Phase 4: inventory core
+
+Status: complete
+
+Completed:
+
+- Inventory item management service and admin REST APIs
+- PostgreSQL-backed inventory repository
+- Deterministic warehouse allocation by highest available stock and stable warehouse ordering
+- Contention-safe reservation transaction using optimistic version checks and bounded retries
+- Reservation release, confirmation, and expiration flows with replay-safe state transitions
+- Inventory outbox event emission for reserved, confirmed, released, and expired reservation events
+- Reservation expiration worker with configurable interval and batch size
+- Checkout-safe inventory metrics counters for unavailable stock, contention, and expirations
+- Unit coverage for reservation normalization, unavailable-stock metrics, and expiration metrics
+
+Residual risks:
+
+- Live PostgreSQL concurrency stress coverage still depends on the local integration database being available and migrated
+- No Prometheus exporter exists yet; inventory metrics are currently service-level counters exposed to the application layer
+
+### Phase 5: checkout and payments
+
+Status: complete
+
+Completed:
+
+- Checkout application service with cart ownership validation, product snapshot validation, order total calculation, and order creation
+- REST `POST /api/v1/checkout` endpoint with authentication, RBAC, rate limiting, and required idempotency
+- Prisma-backed order and payment attempt persistence
+- Payment provider adapter abstraction with a deterministic local Razorpay-compatible development adapter
+- Raw-body webhook capture and Razorpay webhook signature verification
+- Idempotent payment webhook event persistence
+- Webhook-driven saga continuation for captured, authorized, failed, and cancelled payment states
+- Inventory compensation on payment initiation or payment failure paths
+- Order read API with self-vs-any authorization enforcement
+- Payment reconciliation worker for stale pending attempts
+- Unit coverage for checkout success, payment-initiation compensation, and captured-payment webhook confirmation
+
+Residual risks:
+
+- Real Razorpay API integration is represented by the provider port and local adapter, not a networked production adapter
+- Reconciliation polling behavior is implemented, but provider-specific stale-payment lookup must be expanded when a real PSP adapter is added
+
 ## Not started
 
 The following architecture phases do not have implemented module code in the repository yet:
 
-- Phase 3 catalog authoring and search projection
-- Phase 4 inventory core
-- Phase 5 checkout and payments
 - Phase 6 storefront
 - Phase 7 hardening
 - Phase 8 extraction roadmap
@@ -139,13 +199,9 @@ The following architecture phases do not have implemented module code in the rep
 
 Execution order should follow dependency risk, not feature excitement.
 
-1. Start Phase 3 catalog authoring and search projection.
-   - MongoDB product authoring model
-   - publication flow and outbox event emission
-   - OpenSearch projection worker
-
-2. Keep checkout and inventory deferred until catalog and cart read models are stable enough to support authoritative checkout validation.
+1. Start Phase 6 storefront only after the catalog read model contracts are confirmed stable enough for SSR/ISR storefront routes.
+2. Keep Phase 7 hardening focused on the highest-risk runtime paths first: inventory concurrency, checkout idempotency, webhook replay, and stale payment reconciliation.
 
 ## Delivery note
 
-The repository was already clean and synchronized with `origin/main` at review time. This tracker commit records the actual completion state so future work can start from the real merged baseline instead of assumptions.
+Phase 2 remains closed. Phase 4 and Phase 5 now provide the downstream modules needed to exercise auth/RBAC and cart behavior in real checkout flows.

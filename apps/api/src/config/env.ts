@@ -30,6 +30,16 @@ const envSchema = z.object({
   CART_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(60),
   CART_SCHEMA_VERSION: z.coerce.number().int().positive().default(1),
   CART_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  CHECKOUT_PAYMENT_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(15 * 60 * 1000),
+  CHECKOUT_RATE_LIMIT_MAX_REQUESTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(20),
   DATABASE_URL: z
     .string()
     .min(1)
@@ -43,14 +53,63 @@ const envSchema = z.object({
     .default(10000),
   HOST: z.string().min(1).default("0.0.0.0"),
   IDEMPOTENCY_TTL_HOURS: z.coerce.number().int().positive().default(24),
+  INVENTORY_RESERVATION_EXPIRY_BATCH_SIZE: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(500),
+  INVENTORY_RESERVATION_EXPIRY_INTERVAL_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(30_000),
+  INVENTORY_RESERVATION_MAX_RETRIES: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(10)
+    .default(3),
+  INVENTORY_RESERVATION_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(15 * 60),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
+  MONGODB_URL: z
+    .string()
+    .url()
+    .default("mongodb://127.0.0.1:27017/ecommerce_platform?replicaSet=rs0"),
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
   OTEL_ENABLED: z.coerce.boolean().default(false),
   OTEL_SERVICE_VERSION: z.string().min(1).default("0.1.0"),
+  PAYMENT_CHECKOUT_BASE_URL: z
+    .string()
+    .url()
+    .default("https://checkout.example.test/payments"),
+  PAYMENT_PROVIDER: z.string().min(1).default("razorpay"),
+  PAYMENT_RECONCILIATION_BATCH_SIZE: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(100),
+  PAYMENT_RECONCILIATION_INTERVAL_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(60_000),
+  PAYMENT_RECONCILIATION_STALE_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(5 * 60 * 1000),
+  RAZORPAY_WEBHOOK_SECRET: z
+    .string()
+    .min(16)
+    .default("dev-razorpay-webhook-secret"),
   REDIS_URL: z.string().url().default("redis://127.0.0.1:6379"),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
   RATE_LIMIT_WINDOW_MS: z.coerce
@@ -59,7 +118,8 @@ const envSchema = z.object({
     .positive()
     .default(15 * 60 * 1000),
   REQUEST_BODY_LIMIT: z.string().min(1).default("1mb"),
-  PORT: z.coerce.number().int().min(1).max(65535).default(4000)
+  PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+  WORKERS_ENABLED: z.coerce.boolean().default(true)
 });
 
 export const env = envSchema.parse(process.env);

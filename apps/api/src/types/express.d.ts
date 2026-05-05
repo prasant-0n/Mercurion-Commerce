@@ -8,6 +8,7 @@ declare module "express-serve-static-core" {
   interface Request {
     auth?: AccessTokenPayload;
     log: Logger;
+    rawBody?: string;
     requestId: string;
   }
 }
